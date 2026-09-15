@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="swipe_fraction_entries"><item>5%</item><item>10%</item><item>15%</item><item>20%</item><item>25%</item><item>30%</item><item>35%</item><item>40%</item><item>45%</item><item>50%</item></string-array>
+    <string-array name="swipe_fraction_values"><item>0.05</item><item>0.10</item><item>0.15</item><item>0.20</item><item>0.25</item><item>0.30</item><item>0.35</item><item>0.40</item><item>0.45</item><item>0.50</item></string-array>
+    <string-array name="volume_behavior_entries"><item>Move Page</item><item>Disable</item></string-array>
+    <string-array name="volume_behavior_values"><item>move_page</item><item>disable</item></string-array>
+    <string-array name="volume_direction_entries"><item>Up: Previous page /\nDown: Next page</item><item>Up: Next page /\nDown: Previous page</item></string-array>
+    <string-array name="volume_direction_values"><item>up_prev</item><item>up_next</item></string-array>
+</resources>
