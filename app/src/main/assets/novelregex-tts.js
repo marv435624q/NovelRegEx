@@ -1253,6 +1253,13 @@
     snapshot,
 
     /*
+     * Android preload poll용 가벼운 준비 상태 확인.
+     */
+    isReady() {
+      return state.sentences.length > 0 && !state.dirty;
+    },
+
+    /*
      * collect()에서 캐시한 다음 화 URL. 없을 때만 다시 탐색한다.
      */
     nextChapterUrl() {
