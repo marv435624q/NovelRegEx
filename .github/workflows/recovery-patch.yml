@@ -1,0 +1,43 @@
+name: Recovery patch
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/recovery-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch recovered v0.2.3 TTS readiness API
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('app/src/main/assets/novelregex-tts.js')
+          text = path.read_text(encoding='utf-8')
+          if '    isReady() {' in text:
+              print('isReady() already restored')
+              raise SystemExit(0)
+
+          needle = '''    snapshot,\n\n    /*\n     * collect()에서 캐시한 다음 화 URL. 없을 때만 다시 탐색한다.\n     */'''
+          replacement = '''    snapshot,\n\n    /*\n     * Android preload poll용 가벼운 준비 상태 확인.\n     */\n    isReady() {\n      return state.sentences.length > 0 && !state.dirty;\n    },\n\n    /*\n     * collect()에서 캐시한 다음 화 URL. 없을 때만 다시 탐색한다.\n     */'''
+          if needle not in text:
+              raise SystemExit('Expected v0.2.2 snapshot/nextChapterUrl block was not found')
+          path.write_text(text.replace(needle, replacement, 1), encoding='utf-8', newline='\n')
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'NovelRegEx Recovery'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/src/main/assets/novelregex-tts.js
+          git commit -m 'Restore v0.2.3 TTS readiness API'
+          git push
