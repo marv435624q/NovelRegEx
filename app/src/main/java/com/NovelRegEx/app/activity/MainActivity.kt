@@ -814,8 +814,24 @@ class MainActivity : AppCompatActivity() {
             document.querySelectorAll('#novel_drawing font.line')
           );
           var atEnd = false;
+          var novelBox = document.getElementById('novel_box');
+          var novelBoxClientHeight = novelBox ? Number(novelBox.clientHeight || 0) : 0;
+          var novelBoxScrollHeight = novelBox ? Number(novelBox.scrollHeight || 0) : 0;
+          var novelBoxScrollable =
+            !!novelBox &&
+            novelBoxClientHeight > 0 &&
+            novelBoxScrollHeight > novelBoxClientHeight + 8;
 
-          if (lines.length) {
+          if (novelBoxScrollable) {
+            // Scroll view: Novelpia scrolls #novel_box, not the document/window.
+            // Only advance episodes after the reader has reached the real bottom.
+            var novelBoxScrollTop = Number(novelBox.scrollTop || 0);
+            atEnd =
+              novelBoxScrollTop + novelBoxClientHeight >=
+              novelBoxScrollHeight - 8;
+          } else if (lines.length) {
+            // Page view: there is no continuously scrolling novel_box. The last
+            // page is the page on which the chapter's final line is visible.
             var lastLine = lines[lines.length - 1];
             var rects = [];
             try {
@@ -836,24 +852,6 @@ class MainActivity : AppCompatActivity() {
               ) {
                 atEnd = true;
                 break;
-              }
-            }
-          }
-
-          if (!atEnd) {
-            var scroller =
-              document.scrollingElement ||
-              document.documentElement ||
-              document.body;
-            if (scroller) {
-              var scrollTop = Number(scroller.scrollTop || window.scrollY || 0);
-              var clientHeight = Math.max(
-                viewportHeight,
-                Number(scroller.clientHeight || 0)
-              );
-              var scrollHeight = Number(scroller.scrollHeight || 0);
-              if (scrollHeight > 0) {
-                atEnd = scrollTop + clientHeight >= scrollHeight - 8;
               }
             }
           }
