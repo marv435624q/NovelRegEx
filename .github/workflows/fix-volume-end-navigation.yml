@@ -1,0 +1,130 @@
+name: Fix volume end navigation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-volume-end-navigation.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch viewer end detection
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('app/src/main/java/com/NovelRegEx/app/activity/MainActivity.kt')
+          s = p.read_text(encoding='utf-8')
+
+          old = '''          var lines = Array.prototype.slice.call(
+            document.querySelectorAll('#novel_drawing font.line')
+          );
+          var atEnd = false;
+
+          if (lines.length) {
+            var lastLine = lines[lines.length - 1];
+            var rects = [];
+            try {
+              rects = Array.prototype.slice.call(lastLine.getClientRects());
+            } catch (_) {}
+            if (!rects.length) {
+              try { rects = [lastLine.getBoundingClientRect()]; } catch (_) {}
+            }
+
+            for (var i = 0; i < rects.length; i++) {
+              var rect = rects[i];
+              if (
+                rect &&
+                rect.bottom > 0 &&
+                rect.top < viewportHeight &&
+                rect.right > 0 &&
+                rect.left < viewportWidth
+              ) {
+                atEnd = true;
+                break;
+              }
+            }
+          }
+
+          if (!atEnd) {
+            var scroller =
+              document.scrollingElement ||
+              document.documentElement ||
+              document.body;
+            if (scroller) {
+              var scrollTop = Number(scroller.scrollTop || window.scrollY || 0);
+              var clientHeight = Math.max(
+                viewportHeight,
+                Number(scroller.clientHeight || 0)
+              );
+              var scrollHeight = Number(scroller.scrollHeight || 0);
+              if (scrollHeight > 0) {
+                atEnd = scrollTop + clientHeight >= scrollHeight - 8;
+              }
+            }
+          }
+'''
+
+          new = '''          var lines = Array.prototype.slice.call(
+            document.querySelectorAll('#novel_drawing font.line')
+          );
+          var atEnd = false;
+          var novelBox = document.getElementById('novel_box');
+          var novelBoxClientHeight = novelBox ? Number(novelBox.clientHeight || 0) : 0;
+          var novelBoxScrollHeight = novelBox ? Number(novelBox.scrollHeight || 0) : 0;
+          var novelBoxScrollable =
+            !!novelBox &&
+            novelBoxClientHeight > 0 &&
+            novelBoxScrollHeight > novelBoxClientHeight + 8;
+
+          if (novelBoxScrollable) {
+            // Scroll view: Novelpia scrolls #novel_box, not the document/window.
+            // Only advance episodes after the reader has reached the real bottom.
+            var novelBoxScrollTop = Number(novelBox.scrollTop || 0);
+            atEnd =
+              novelBoxScrollTop + novelBoxClientHeight >=
+              novelBoxScrollHeight - 8;
+          } else if (lines.length) {
+            // Page view: there is no continuously scrolling novel_box. The last
+            // page is the page on which the chapter's final line is visible.
+            var lastLine = lines[lines.length - 1];
+            var rects = [];
+            try {
+              rects = Array.prototype.slice.call(lastLine.getClientRects());
+            } catch (_) {}
+            if (!rects.length) {
+              try { rects = [lastLine.getBoundingClientRect()]; } catch (_) {}
+            }
+
+            for (var i = 0; i < rects.length; i++) {
+              var rect = rects[i];
+              if (
+                rect &&
+                rect.bottom > 0 &&
+                rect.top < viewportHeight &&
+                rect.right > 0 &&
+                rect.left < viewportWidth
+              ) {
+                atEnd = true;
+                break;
+              }
+            }
+          }
+'''
+
+          if old not in s:
+              raise SystemExit('Expected volume end-detection block not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8', newline='\n')
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'NovelRegEx Recovery'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/src/main/java/com/NovelRegEx/app/activity/MainActivity.kt
+          git commit -m 'Fix volume navigation at viewer end'
+          git push
