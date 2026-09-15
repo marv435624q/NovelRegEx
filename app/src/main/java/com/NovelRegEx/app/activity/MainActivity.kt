@@ -1628,20 +1628,103 @@ class MainActivity : AppCompatActivity() {
         """
         (function() {
           try {
-            var scroller = document.scrollingElement || document.documentElement || document.body;
-            var maxScroll = Math.max(1, (scroller ? scroller.scrollHeight : 1) - window.innerHeight);
-            var scrollTop = scroller ? scroller.scrollTop : window.scrollY;
-            var fraction = Math.max(0, Math.min(1, scrollTop / maxScroll));
-            var ys = [0.45, 0.60, 0.30];
-            var text = '';
+            var viewportWidth = Math.max(
+              1,
+              window.innerWidth || document.documentElement.clientWidth || 1
+            );
+            var viewportHeight = Math.max(
+              1,
+              window.innerHeight || document.documentElement.clientHeight || 1
+            );
+            var targetX = viewportWidth * 0.5;
+            var targetY = viewportHeight * 0.45;
+            var lines = Array.prototype.slice.call(
+              document.querySelectorAll('#novel_drawing font.line')
+            );
+            var bestLine = null;
+            var bestRect = null;
+            var bestLineIndex = -1;
+            var bestScore = Number.POSITIVE_INFINITY;
 
-            for (var i = 0; i < ys.length && !text; i++) {
-              var x = Math.max(1, window.innerWidth * 0.5);
-              var y = Math.max(1, window.innerHeight * ys[i]);
-              var range = document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y) : null;
-              if (range && range.startContainer) {
+            function visibleRect(rect) {
+              if (!rect) return null;
+              var left = Math.max(0, Number(rect.left) || 0);
+              var right = Math.min(viewportWidth, Number(rect.right) || 0);
+              var top = Math.max(0, Number(rect.top) || 0);
+              var bottom = Math.min(viewportHeight, Number(rect.bottom) || 0);
+              if (right <= left || bottom <= top) return null;
+              return {
+                left: left,
+                right: right,
+                top: top,
+                bottom: bottom,
+                width: right - left,
+                height: bottom - top
+              };
+            }
+
+            for (var lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+              var line = lines[lineIndex];
+              try {
+                var style = window.getComputedStyle(line);
+                if (
+                  style.display === 'none' ||
+                  style.visibility === 'hidden' ||
+                  Number(style.opacity) === 0
+                ) {
+                  continue;
+                }
+              } catch (_) {}
+
+              var rects = [];
+              try {
+                rects = Array.prototype.slice.call(line.getClientRects());
+              } catch (_) {}
+              if (!rects.length) {
+                try { rects = [line.getBoundingClientRect()]; } catch (_) {}
+              }
+
+              for (var rectIndex = 0; rectIndex < rects.length; rectIndex++) {
+                var clipped = visibleRect(rects[rectIndex]);
+                if (!clipped) continue;
+
+                var centerX = (clipped.left + clipped.right) * 0.5;
+                var centerY = (clipped.top + clipped.bottom) * 0.5;
+                var score =
+                  Math.abs(centerY - targetY) +
+                  Math.abs(centerX - targetX) * 0.12;
+
+                if (score < bestScore) {
+                  bestScore = score;
+                  bestLine = line;
+                  bestRect = clipped;
+                  bestLineIndex = lineIndex;
+                }
+              }
+            }
+
+            var text = '';
+            if (bestLine && bestRect) {
+              var samplePoints = [
+                [(bestRect.left + bestRect.right) * 0.5, (bestRect.top + bestRect.bottom) * 0.5],
+                [bestRect.left + bestRect.width * 0.30, (bestRect.top + bestRect.bottom) * 0.5],
+                [bestRect.right - bestRect.width * 0.30, (bestRect.top + bestRect.bottom) * 0.5]
+              ];
+
+              for (var pointIndex = 0; pointIndex < samplePoints.length && !text; pointIndex++) {
+                var point = samplePoints[pointIndex];
+                var range = document.caretRangeFromPoint
+                  ? document.caretRangeFromPoint(point[0], point[1])
+                  : null;
+                if (!range || !range.startContainer) continue;
+
                 var node = range.startContainer;
-                var raw = node.nodeType === 3 ? (node.nodeValue || '') : (node.textContent || '');
+                var owner = node.nodeType === 3 ? node.parentElement : node;
+                if (owner && !bestLine.contains(owner) && owner !== bestLine) continue;
+
+                var raw = node.nodeType === 3
+                  ? (node.nodeValue || '')
+                  : (node.textContent || '');
                 var offset = Math.max(0, Math.min(raw.length, range.startOffset || 0));
                 var from = Math.max(0, offset - 70);
                 var to = Math.min(raw.length, offset + 110);
@@ -1649,14 +1732,47 @@ class MainActivity : AppCompatActivity() {
               }
 
               if (!text) {
-                var element = document.elementFromPoint(x, y);
-                while (element && element !== document.body) {
-                  var candidate = (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
-                  if (candidate.length >= 2 && candidate.length <= 240) {
-                    text = candidate;
-                    break;
-                  }
-                  element = element.parentElement;
+                text = (bestLine.innerText || bestLine.textContent || '')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+              }
+
+              var lineFraction =
+                lines.length > 1 && bestLineIndex >= 0
+                  ? bestLineIndex / (lines.length - 1)
+                  : 0;
+              return JSON.stringify({ text: text, fraction: lineFraction });
+            }
+
+            var scroller = document.scrollingElement || document.documentElement || document.body;
+            var maxScroll = Math.max(1, (scroller ? scroller.scrollHeight : 1) - viewportHeight);
+            var scrollTop = scroller ? scroller.scrollTop : window.scrollY;
+            var fraction = Math.max(0, Math.min(1, scrollTop / maxScroll));
+            var xs = [0.50, 0.30, 0.70];
+            var ys = [0.45, 0.60, 0.30];
+
+            for (var yIndex = 0; yIndex < ys.length && !text; yIndex++) {
+              for (var xIndex = 0; xIndex < xs.length && !text; xIndex++) {
+                var x = Math.max(1, viewportWidth * xs[xIndex]);
+                var y = Math.max(1, viewportHeight * ys[yIndex]);
+                var fallbackRange = document.caretRangeFromPoint
+                  ? document.caretRangeFromPoint(x, y)
+                  : null;
+                if (fallbackRange && fallbackRange.startContainer) {
+                  var fallbackNode = fallbackRange.startContainer;
+                  var fallbackRaw = fallbackNode.nodeType === 3
+                    ? (fallbackNode.nodeValue || '')
+                    : (fallbackNode.textContent || '');
+                  var fallbackOffset = Math.max(
+                    0,
+                    Math.min(fallbackRaw.length, fallbackRange.startOffset || 0)
+                  );
+                  var fallbackFrom = Math.max(0, fallbackOffset - 70);
+                  var fallbackTo = Math.min(fallbackRaw.length, fallbackOffset + 110);
+                  text = fallbackRaw
+                    .slice(fallbackFrom, fallbackTo)
+                    .replace(/\s+/g, ' ')
+                    .trim();
                 }
               }
             }
