@@ -792,6 +792,148 @@ class MainActivity : AppCompatActivity() {
     })
   }
 
+  private fun handleVolumeViewerNavigation(selector: String) {
+    if (selector != "#novel_drawing_right") {
+      webView.evaluateJavascript("document.querySelector('$selector')?.click()", null)
+      return
+    }
+
+    val js =
+      """
+      (function() {
+        try {
+          var viewportWidth = Math.max(
+            1,
+            window.innerWidth || document.documentElement.clientWidth || 1
+          );
+          var viewportHeight = Math.max(
+            1,
+            window.innerHeight || document.documentElement.clientHeight || 1
+          );
+          var lines = Array.prototype.slice.call(
+            document.querySelectorAll('#novel_drawing font.line')
+          );
+          var atEnd = false;
+
+          if (lines.length) {
+            var lastLine = lines[lines.length - 1];
+            var rects = [];
+            try {
+              rects = Array.prototype.slice.call(lastLine.getClientRects());
+            } catch (_) {}
+            if (!rects.length) {
+              try { rects = [lastLine.getBoundingClientRect()]; } catch (_) {}
+            }
+
+            for (var i = 0; i < rects.length; i++) {
+              var rect = rects[i];
+              if (
+                rect &&
+                rect.bottom > 0 &&
+                rect.top < viewportHeight &&
+                rect.right > 0 &&
+                rect.left < viewportWidth
+              ) {
+                atEnd = true;
+                break;
+              }
+            }
+          }
+
+          if (!atEnd) {
+            var scroller =
+              document.scrollingElement ||
+              document.documentElement ||
+              document.body;
+            if (scroller) {
+              var scrollTop = Number(scroller.scrollTop || window.scrollY || 0);
+              var clientHeight = Math.max(
+                viewportHeight,
+                Number(scroller.clientHeight || 0)
+              );
+              var scrollHeight = Number(scroller.scrollHeight || 0);
+              if (scrollHeight > 0) {
+                atEnd = scrollTop + clientHeight >= scrollHeight - 8;
+              }
+            }
+          }
+
+          function navigate(rawUrl) {
+            if (!rawUrl) return false;
+            try {
+              var target = new URL(String(rawUrl), location.href);
+              var current = new URL(location.href);
+              if (
+                target.origin === current.origin &&
+                target.pathname.replace(/\/$/, '') === current.pathname.replace(/\/$/, '') &&
+                target.search === current.search
+              ) {
+                return false;
+              }
+              location.href = target.href;
+              return true;
+            } catch (_) {
+              return false;
+            }
+          }
+
+          function navigateToNextEpisode() {
+            var exact = document.getElementById('next_epi_auto_url');
+            if (exact && exact.value && navigate(exact.value)) return true;
+
+            var nextNo = document.getElementById('content_no_next');
+            if (nextNo && /^\d+$/.test(String(nextNo.value || '')) && Number(nextNo.value) > 0) {
+              if (navigate('/viewer/' + String(nextNo.value))) return true;
+            }
+
+            var bottom = document.getElementById('next_epi_btn_bottom');
+            var onclick = bottom ? (bottom.getAttribute('onclick') || '') : '';
+            var matched = onclick.match(/check_next_episode_link\s*\(\s*["']?(\d+)/);
+            if (matched && matched[1] && navigate('/viewer/' + matched[1])) return true;
+
+            var right = document.querySelector('#novel_drawing_right');
+            var rightAnchor = right && right.closest ? right.closest('a[href]') : null;
+            if (
+              rightAnchor &&
+              rightAnchor.href &&
+              !String(rightAnchor.href).startsWith('javascript:') &&
+              navigate(rightAnchor.href)
+            ) {
+              return true;
+            }
+
+            var anchors = document.querySelectorAll('a[href]');
+            for (var anchorIndex = 0; anchorIndex < anchors.length; anchorIndex++) {
+              var anchor = anchors[anchorIndex];
+              var label = String(anchor.textContent || '').replace(/\s/g, '');
+              if ((label === '다음화' || label === '다음화보기') && navigate(anchor.href)) {
+                return true;
+              }
+            }
+            return false;
+          }
+
+          if (atEnd && navigateToNextEpisode()) {
+            return 'next-episode';
+          }
+
+          var button = document.querySelector('#novel_drawing_right');
+          if (button) {
+            button.click();
+            return 'next-page';
+          }
+          return 'none';
+        } catch (_) {
+          var fallback = document.querySelector('#novel_drawing_right');
+          if (fallback) fallback.click();
+          return 'fallback';
+        }
+      })();
+      """.trimIndent()
+
+    webView.evaluateJavascript(js, null)
+  }
+
   override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
     if ((keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) && ttsController.isOverlayVisible()) {
         return super.onKeyDown(keyCode, event)
@@ -808,7 +950,7 @@ class MainActivity : AppCompatActivity() {
           else -> null
         }
         if (selector != null) {
-          webView.evaluateJavascript("document.querySelector('$selector')?.click()", null)
+          handleVolumeViewerNavigation(selector)
           return true
         }
       }
