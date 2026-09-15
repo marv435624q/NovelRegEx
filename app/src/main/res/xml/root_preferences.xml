@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory android:title="@string/pref_category_start_page">
+        <Preference android:key="start_page" android:summary="@string/start_page_mybook_title" android:title="@string/pref_key_start_page" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/pref_category_system">
+        <Preference android:key="open_link_settings" android:summary="@string/pref_desc_open_link_settings_disabled" android:title="@string/pref_key_open_link_settings" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/pref_category_viewer">
+        <ListPreference android:defaultValue="move_page" android:entries="@array/volume_behavior_entries" android:entryValues="@array/volume_behavior_values" android:key="volume_behavior" android:title="@string/pref_key_volume_behavior" app:useSimpleSummaryProvider="true" />
+        <ListPreference android:defaultValue="up_prev" android:entries="@array/volume_direction_entries" android:entryValues="@array/volume_direction_values" android:key="volume_direction" android:title="@string/pref_key_volume_direction" app:useSimpleSummaryProvider="true" />
+        <ListPreference android:defaultValue="0.15" android:entries="@array/swipe_fraction_entries" android:entryValues="@array/swipe_fraction_values" android:key="swipe_fraction" android:summary="@string/pref_desc_swipe_fraction" android:title="@string/pref_key_swipe_fraction" app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/pref_category_ad_blocking">
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="filters_enabled" android:summary="@string/pref_desc_filters_enabled" android:title="@string/pref_key_filters_enabled" />
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="filters_auto_update" android:summary="@string/pref_desc_filters_auto_update" android:title="@string/pref_key_filters_auto_update" />
+        <Preference android:key="filters_subscriptions" android:summary="@string/pref_desc_filters_subscriptions" android:title="@string/pref_key_filters_subscriptions" />
+        <Preference android:key="filters_user_rules" android:summary="@string/pref_desc_filters_user_rules" android:title="@string/pref_key_filters_user_rules" />
+        <Preference android:key="filters_update_now" android:summary="@string/pref_desc_filters_update_now" android:title="@string/pref_key_filters_update_now" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/pref_category_setting_backup">
+        <Preference android:key="export_settings" android:summary="@string/pref_desc_export_settings" android:title="@string/pref_key_export_settings" />
+        <Preference android:key="import_settings" android:summary="@string/pref_desc_import_settings" android:title="@string/pref_key_import_settings" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/pref_category_data">
+        <Preference android:key="clear_cache" android:summary="@string/pref_desc_clear_cache" android:title="@string/pref_key_clear_cache" />
+        <Preference android:key="clear_webstorage" android:summary="@string/pref_desc_clear_webstorage" android:title="@string/pref_key_clear_webstorage" />
+        <Preference android:key="clear_cookie" android:summary="@string/pref_desc_clear_cookie" android:title="@string/pref_key_clear_cookie" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/pref_category_update">
+        <Preference android:key="current_version" android:selectable="false" android:title="@string/pref_key_current_version" />
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="auto_check_update" android:summary="@string/pref_desc_auto_check_update" android:title="@string/pref_key_auto_check_update" />
+        <Preference android:key="check_update" android:summary="@string/pref_desc_check_update_default" android:title="@string/pref_key_check_update" />
+        <Preference android:enabled="false" android:key="download_update" android:title="@string/pref_key_download_update" />
+    </PreferenceCategory>
+</androidx.preference.PreferenceScreen>
