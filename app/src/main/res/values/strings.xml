@@ -107,7 +107,7 @@
     <string name="pref_key_start_page">Start Page</string>
     <string name="pref_key_swipe_fraction">Pull-to-Refresh Zone</string>
     <string name="pref_key_volume_behavior">Volume Key Behavior</string>
-    <string name="pref_key_volume_direction">Volume Key Direction</string>
+    <string name="pref_key_volume_direction">Reverse Volume Buttons</string>
     <string name="press_twice_to_exit">Press Back again to exit</string>
     <string name="start_page_home_title">Home</string>
     <string name="start_page_last_view_title">Recently Viewed</string>

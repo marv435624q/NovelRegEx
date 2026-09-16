@@ -793,6 +793,120 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun handleVolumeViewerNavigation(selector: String) {
+    if (selector == "#novel_drawing_left") {
+      val js =
+        """
+        (function() {
+          try {
+            var viewportWidth = Math.max(
+              1,
+              window.innerWidth || document.documentElement.clientWidth || 1
+            );
+            var viewportHeight = Math.max(
+              1,
+              window.innerHeight || document.documentElement.clientHeight || 1
+            );
+            var novelBox = document.getElementById('novel_box');
+            var clientHeight = novelBox ? Number(novelBox.clientHeight || 0) : 0;
+            var scrollHeight = novelBox ? Number(novelBox.scrollHeight || 0) : 0;
+            var scrollable =
+              !!novelBox &&
+              clientHeight > 0 &&
+              scrollHeight > clientHeight + 8;
+            var atStart = false;
+
+            if (scrollable) {
+              atStart = Number(novelBox.scrollTop || 0) <= 8;
+            } else {
+              var firstLine = document.querySelector('#novel_drawing font.line');
+              if (firstLine) {
+                var rects = [];
+                try {
+                  rects = Array.prototype.slice.call(firstLine.getClientRects());
+                } catch (_) {}
+                if (!rects.length) {
+                  try { rects = [firstLine.getBoundingClientRect()]; } catch (_) {}
+                }
+                for (var i = 0; i < rects.length; i++) {
+                  var rect = rects[i];
+                  if (
+                    rect &&
+                    rect.bottom > 0 &&
+                    rect.top < viewportHeight &&
+                    rect.right > 0 &&
+                    rect.left < viewportWidth
+                  ) {
+                    atStart = true;
+                    break;
+                  }
+                }
+              }
+            }
+
+            function navigate(rawUrl) {
+              if (!rawUrl) return false;
+              try {
+                var target = new URL(String(rawUrl), location.href);
+                var current = new URL(location.href);
+                if (
+                  target.origin === current.origin &&
+                  target.pathname.replace(/\/$/, '') === current.pathname.replace(/\/$/, '') &&
+                  target.search === current.search
+                ) {
+                  return false;
+                }
+                location.href = target.href;
+                return true;
+              } catch (_) {
+                return false;
+              }
+            }
+
+            if (atStart) {
+              var exact = document.getElementById('back_epi_auto_url');
+              if (exact && exact.value && navigate(exact.value)) {
+                return 'previous-episode';
+              }
+
+              var left = document.querySelector('#novel_drawing_left');
+              var leftAnchor = left && left.closest ? left.closest('a[href]') : null;
+              if (
+                leftAnchor &&
+                leftAnchor.href &&
+                !String(leftAnchor.href).startsWith('javascript:') &&
+                navigate(leftAnchor.href)
+              ) {
+                return 'previous-episode';
+              }
+
+              var anchors = document.querySelectorAll('a[href]');
+              for (var anchorIndex = 0; anchorIndex < anchors.length; anchorIndex++) {
+                var anchor = anchors[anchorIndex];
+                var label = String(anchor.textContent || '').replace(/\s/g, '');
+                if ((label === '이전화' || label === '이전화보기') && navigate(anchor.href)) {
+                  return 'previous-episode';
+                }
+              }
+            }
+
+            var button = document.querySelector('#novel_drawing_left');
+            if (button) {
+              button.click();
+              return 'previous-page';
+            }
+            return 'none';
+          } catch (_) {
+            var fallback = document.querySelector('#novel_drawing_left');
+            if (fallback) fallback.click();
+            return 'fallback';
+          }
+        })();
+        """.trimIndent()
+
+      webView.evaluateJavascript(js, null)
+      return
+    }
+
     if (selector != "#novel_drawing_right") {
       webView.evaluateJavascript("document.querySelector('$selector')?.click()", null)
       return

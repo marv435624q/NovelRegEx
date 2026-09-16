@@ -2,6 +2,6 @@
 <resources>
     <string-array name="volume_behavior_entries"><item>페이지 이동</item><item>비활성화</item></string-array>
     <string-array name="volume_behavior_values"><item>move_page</item><item>disable</item></string-array>
-    <string-array name="volume_direction_entries"><item>위: 이전 페이지 /\n아래: 다음 페이지</item><item>위: 다음 페이지 /\n아래: 이전 페이지</item></string-array>
+    <string-array name="volume_direction_entries"><item>기본: 볼륨 ↑ 이전 / 볼륨 ↓ 다음</item><item>반전: 볼륨 ↑ 다음 / 볼륨 ↓ 이전</item></string-array>
     <string-array name="volume_direction_values"><item>up_prev</item><item>up_next</item></string-array>
 </resources>
